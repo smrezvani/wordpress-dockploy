@@ -10,19 +10,36 @@ services:
       timeout: 10s
       retries: 3
     environment:
-      # Database - Configure these to point to your external MySQL
-      WORDPRESS_DB_HOST: ${DB_HOST}
-      WORDPRESS_DB_USER: ${DB_USER}
-      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
-      WORDPRESS_DB_NAME: ${DB_NAME}
+      # Database Configuration
+      # Option 1: Use DATABASE_URL (e.g., mysql://user:pass@host:port/dbname)
+      DATABASE_URL: ${DATABASE_URL:-mysql://mysql:efw3zo2ivw98dpgf@cika-host-wpdb-zgtbn8:3306/mysql}
+      
+      # Option 2: Use individual variables (these override DATABASE_URL if set)
+      WORDPRESS_DB_HOST: ${DB_HOST:-}
+      WORDPRESS_DB_USER: ${DB_USER:-}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-}
+      WORDPRESS_DB_NAME: ${DB_NAME:-}
+      
+      # WordPress Configuration
       WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX:-wp_}
       WORDPRESS_DEBUG: ${WP_DEBUG:-false}
+      
       # PHP Configuration
       PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-512M}
       PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-300}
       PHP_MAX_INPUT_VARS: ${PHP_MAX_INPUT_VARS:-5000}
+      
       # Extra configuration
       WORDPRESS_CONFIG_EXTRA: |
+        /* Parse DATABASE_URL if individual vars not set */
+        if (empty($_ENV['WORDPRESS_DB_HOST']) && !empty($_ENV['DATABASE_URL'])) {
+          $url = parse_url($_ENV['DATABASE_URL']);
+          define('DB_HOST', $url['host'] . ':' . ($url['port'] ?? 3306));
+          define('DB_USER', $url['user']);
+          define('DB_PASSWORD', $url['pass']);
+          define('DB_NAME', ltrim($url['path'], '/'));
+        }
+        
         /* Performance Settings */
         define('WP_MEMORY_LIMIT', '${WP_MEMORY_LIMIT:-512M}');
         define('WP_MAX_MEMORY_LIMIT', '${WP_MAX_MEMORY_LIMIT:-1024M}');
@@ -64,15 +81,16 @@ services:
     depends_on:
       - wordpress
     environment:
-      # Same database configuration as wordpress service
-      WORDPRESS_DB_HOST: ${DB_HOST}
-      WORDPRESS_DB_USER: ${DB_USER}
-      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
-      WORDPRESS_DB_NAME: ${DB_NAME}
+      # Same database configuration
+      DATABASE_URL: ${DATABASE_URL:-mysql://mysql:efw3zo2ivw98dpgf@cika-host-wpdb-zgtbn8:3306/mysql}
+      WORDPRESS_DB_HOST: ${DB_HOST:-}
+      WORDPRESS_DB_USER: ${DB_USER:-}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-}
+      WORDPRESS_DB_NAME: ${DB_NAME:-}
     volumes:
       - wordpress:/var/www/html
     entrypoint: /bin/sh
-    command: -c "while true; do sleep 60 && php /var/www/html/wp-cron.php; done"
+    command: -c "while true; do sleep 60 && if [ -f /var/www/html/wp-cron.php ]; then php /var/www/html/wp-cron.php; fi; done"
     networks:
       - dokploy-network
 

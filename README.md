@@ -54,19 +54,20 @@ Production-ready WordPress deployment with Nginx and PHP 8.4-FPM, designed to wo
 
 3. **Configure Environment Variables**
    
-   **Required Variables**
-   Add these to Dokploy's Environment Variables section:
+   **Option A: Using DATABASE_URL (Recommended for Dokploy)**
+   If you have a MySQL URL from Dokploy, just add this one variable:
    
    ```env
-   # Database Configuration (Required)
-   DB_HOST=your-mysql-host:3306
-   DB_USER=wordpress_user
-   DB_PASSWORD=your-database-password
-   DB_NAME=wordpress_production
+   DATABASE_URL=mysql://user:password@host:port/database
    ```
    
-   **Optional Variables**
-   For Redis caching and other settings:
+   Example:
+   ```env
+   DATABASE_URL=mysql://mysql:efw3zo2ivw98dpgf@cika-host-wpdb-zgtbn8:3306/mysql
+   ```
+   
+   **Option B: Using Individual Variables**
+   Or use separate variables:
    
    ```env
    # MySQL Configuration
