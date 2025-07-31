@@ -180,6 +180,7 @@ content = '''services:
     volumes:
       - wp_app:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      - nginx_cache:/var/cache/nginx
     environment:
       WORDPRESS_DB_HOST: wp_db:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
@@ -263,12 +264,14 @@ content = '''services:
       - wordpress
     volumes:
       - wp_app:/var/www/html:ro
+      - nginx_cache:/var/cache/nginx
     networks:
       - dokploy-network
 
 volumes:
   wp_data:
   wp_app:
+  nginx_cache:
 
 networks:
   dokploy-network:
