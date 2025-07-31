@@ -4,9 +4,9 @@ Enhanced WordPress deployment based on Dokploy's template with added Nginx rever
 
 ## Features
 
-- **WordPress** with Apache (latest)
+- **WordPress** with PHP 8.4-FPM (high performance)
 - **MySQL 8.4** database
-- **Nginx** reverse proxy for better performance
+- **Nginx** with FastCGI caching
 - **Security headers** and access restrictions
 - **Performance optimizations** built-in
 - **Simple configuration** - only 3 environment variables
@@ -26,11 +26,20 @@ Enhanced WordPress deployment based on Dokploy's template with added Nginx rever
 
 3. **Deploy** - That's it!
 
+## Architecture
+
+The stack uses PHP-FPM (FastCGI Process Manager) instead of Apache for better performance:
+- **PHP-FPM** runs on port 9000 (internal)
+- **Nginx** handles static files directly
+- **FastCGI** passes PHP requests to PHP-FPM
+- **Caching** at both Nginx and PHP levels
+
 ## What's Improved
 
 ### Over Default Dokploy Template
 
-1. **Nginx Reverse Proxy**
+1. **Nginx with PHP-FPM**
+   - FastCGI caching for dynamic content
    - Static file caching (365 days)
    - Gzip compression
    - Security headers
