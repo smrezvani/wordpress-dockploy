@@ -1,14 +1,14 @@
-# Enterprise WordPress Stack for Dokploy
+# WordPress Stack for Dokploy (External Database)
 
-Production-ready WordPress deployment optimized for high-traffic sites with 1M+ articles, featuring Nginx, PHP 8.4-FPM, MySQL 8.4, and Redis caching.
+Production-ready WordPress deployment with Nginx and PHP 8.4-FPM, designed to work with external MySQL and Redis services.
 
 ## Stack Components
 
 - **WordPress**: Latest with PHP 8.4-FPM
 - **Nginx**: High-performance web server with FastCGI cache
-- **MySQL 8.4**: Optimized for large databases
-- **Redis 7**: Object and page caching
 - **Cron**: Dedicated container for WordPress scheduled tasks
+- **External MySQL**: Connect to your existing MySQL/MariaDB instance
+- **External Redis** (Optional): Connect to your existing Redis instance
 
 ## Features
 
@@ -54,27 +54,19 @@ Production-ready WordPress deployment optimized for high-traffic sites with 1M+ 
 
 3. **Configure Environment Variables**
    
-   **Quick Start (Recommended)**
-   Copy and paste this into Dokploy's Environment Variables section:
+   **Required Variables**
+   Add these to Dokploy's Environment Variables section:
    
    ```env
-   MYSQL_ROOT_PASSWORD=ChangeMe_RootPass2024!
+   # Database Configuration (Required)
+   DB_HOST=your-mysql-host:3306
    DB_USER=wordpress_user
-   DB_PASSWORD=ChangeMe_DBPass2024!
+   DB_PASSWORD=your-database-password
    DB_NAME=wordpress_production
-   REDIS_PASSWORD=ChangeMe_RedisPass2024!
    ```
    
-   **For Production Use**
-   Generate secure passwords using the included script:
-   ```bash
-   ./generate-env.sh
-   ```
-   
-   Then copy the output to Dokploy's environment variables.
-   
-   **Full Variable List**
-   For complete control, configure all variables:
+   **Optional Variables**
+   For Redis caching and other settings:
    
    ```env
    # MySQL Configuration

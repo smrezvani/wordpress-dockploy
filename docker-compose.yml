@@ -1,87 +1,28 @@
 ---
 
 services:
-  mysql:
-    image: mysql:8.4
-    restart: unless-stopped
-    command: --default-authentication-plugin=mysql_native_password
-    healthcheck:
-      test: ["CMD", "sh", "-c", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 90s
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ChangeMe_RootPass2024!}
-      MYSQL_DATABASE: ${DB_NAME:-wordpress_production}
-      MYSQL_USER: ${DB_USER:-wordpress_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-ChangeMe_DBPass2024!}
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
-    networks:
-      - dokploy-network
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-ChangeMe_RedisPass2024!} --maxmemory ${REDIS_MAX_MEMORY:-2gb} --maxmemory-policy allkeys-lru --save 60 1 --save 300 10 --save 900 100
-    healthcheck:
-      test: ["CMD", "sh", "-c", "redis-cli --no-auth-warning -a $$REDIS_PASSWORD ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    volumes:
-      - redis_data:/data
-    networks:
-      - dokploy-network
-
   wordpress:
     image: wordpress:php8.4-fpm
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "php-fpm", "-t"]
       interval: 30s
       timeout: 10s
       retries: 3
     environment:
-      # Database
-      WORDPRESS_DB_HOST: mysql:3306
-      WORDPRESS_DB_USER: ${DB_USER:-wordpress_user}
-      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-ChangeMe_DBPass2024!}
-      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress_production}
+      # Database - Configure these to point to your external MySQL
+      WORDPRESS_DB_HOST: ${DB_HOST}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${DB_NAME}
       WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX:-wp_}
       WORDPRESS_DEBUG: ${WP_DEBUG:-false}
-      # Salts (optional - WordPress will generate if not provided)
-      WORDPRESS_AUTH_KEY: ${WORDPRESS_AUTH_KEY:-}
-      WORDPRESS_SECURE_AUTH_KEY: ${WORDPRESS_SECURE_AUTH_KEY:-}
-      WORDPRESS_LOGGED_IN_KEY: ${WORDPRESS_LOGGED_IN_KEY:-}
-      WORDPRESS_NONCE_KEY: ${WORDPRESS_NONCE_KEY:-}
-      WORDPRESS_AUTH_SALT: ${WORDPRESS_AUTH_SALT:-}
-      WORDPRESS_SECURE_AUTH_SALT: ${WORDPRESS_SECURE_AUTH_SALT:-}
-      WORDPRESS_LOGGED_IN_SALT: ${WORDPRESS_LOGGED_IN_SALT:-}
-      WORDPRESS_NONCE_SALT: ${WORDPRESS_NONCE_SALT:-}
       # PHP Configuration
       PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-512M}
       PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-300}
       PHP_MAX_INPUT_VARS: ${PHP_MAX_INPUT_VARS:-5000}
       # Extra configuration
       WORDPRESS_CONFIG_EXTRA: |
-        /* Redis Configuration */
-        define('WP_REDIS_HOST', 'redis');
-        define('WP_REDIS_PORT', 6379);
-        define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD:-ChangeMe_RedisPass2024!}');
-        define('WP_REDIS_DATABASE', 0);
-        define('WP_REDIS_TIMEOUT', 1);
-        define('WP_REDIS_READ_TIMEOUT', 1);
-        define('WP_REDIS_DISABLED', false);
-        define('WP_CACHE_KEY_SALT', '${DB_NAME:-wordpress_production}_');
-        
         /* Performance Settings */
         define('WP_MEMORY_LIMIT', '${WP_MEMORY_LIMIT:-512M}');
         define('WP_MAX_MEMORY_LIMIT', '${WP_MAX_MEMORY_LIMIT:-1024M}');
@@ -94,10 +35,6 @@ services:
         define('FORCE_SSL_ADMIN', ${FORCE_SSL_ADMIN:-true});
         define('DISALLOW_FILE_EDIT', true);
         define('DISALLOW_FILE_MODS', ${DISALLOW_FILE_MODS:-false});
-        
-        /* Database Optimization */
-        define('WP_ALLOW_REPAIR', false);
-        $$wpdb->query('SET SESSION query_cache_type = ON');
     volumes:
       - wordpress:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
@@ -127,11 +64,11 @@ services:
     depends_on:
       - wordpress
     environment:
-      # Same environment as wordpress service
-      WORDPRESS_DB_HOST: mysql:3306
-      WORDPRESS_DB_USER: ${DB_USER:-wordpress_user}
-      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-ChangeMe_DBPass2024!}
-      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress_production}
+      # Same database configuration as wordpress service
+      WORDPRESS_DB_HOST: ${DB_HOST}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${DB_NAME}
     volumes:
       - wordpress:/var/www/html
     entrypoint: /bin/sh
@@ -141,8 +78,6 @@ services:
 
 volumes:
   wordpress:
-  mysql_data:
-  redis_data:
 
 networks:
   dokploy-network:
