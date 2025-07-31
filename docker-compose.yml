@@ -6,11 +6,11 @@ services:
     restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-ChangeMe_RootPass2024!}"]
+      test: ["CMD", "sh", "-c", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 90s
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ChangeMe_RootPass2024!}
       MYSQL_DATABASE: ${DB_NAME:-wordpress_production}
@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-ChangeMe_RedisPass2024!} --maxmemory ${REDIS_MAX_MEMORY:-2gb} --maxmemory-policy allkeys-lru --save 60 1 --save 300 10 --save 900 100
     healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-ChangeMe_RedisPass2024!}", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli --no-auth-warning -a $$REDIS_PASSWORD ping"]
       interval: 30s
       timeout: 10s
       retries: 3
