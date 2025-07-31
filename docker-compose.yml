@@ -4,7 +4,6 @@ services:
     volumes:
       - wp_app:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
-      - ./www.conf:/usr/local/etc/php-fpm.d/www.conf
     environment:
       WORDPRESS_DB_HOST: wp_db:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
