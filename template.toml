@@ -29,11 +29,27 @@ host = "${main_domain}"
 
 [[config.mounts]]
 filePath = "uploads.ini"
-content = """upload_max_filesize = 64M
-post_max_size = 64M
-memory_limit = 256M
-max_execution_time = 300
-max_input_vars = 3000
+content = """upload_max_filesize = 256M
+post_max_size = 256M
+memory_limit = 512M
+max_execution_time = 600
+max_input_time = 600
+max_input_vars = 5000
+"""
+
+[[config.mounts]]
+filePath = "nginx-entrypoint.sh"
+content = """#!/bin/sh
+# Ensure nginx cache directories exist with proper permissions
+mkdir -p /var/cache/nginx/client_temp
+mkdir -p /var/cache/nginx/fastcgi_temp
+mkdir -p /var/cache/nginx/proxy_temp
+mkdir -p /var/cache/nginx/scgi_temp
+mkdir -p /var/cache/nginx/uwsgi_temp
+chmod -R 777 /var/cache/nginx
+
+# Call the original nginx entrypoint
+exec /docker-entrypoint.sh nginx -g "daemon off;"
 """
 
 [[config.mounts]]
@@ -45,6 +61,12 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Copy our custom config
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy custom entrypoint
+COPY nginx-entrypoint.sh /nginx-entrypoint.sh
+RUN chmod +x /nginx-entrypoint.sh
+
+ENTRYPOINT ["/nginx-entrypoint.sh"]
 """
 
 [[config.mounts]]
@@ -102,8 +124,10 @@ http {
     
     # Security
     server_tokens off;
-    client_max_body_size 100M;
+    client_max_body_size 256M;
     client_body_buffer_size 128k;
+    client_body_timeout 300;
+    client_header_timeout 300;
     
     # Gzip
     gzip on;
@@ -262,7 +286,9 @@ http {
             fastcgi_buffers 256 16k;
             fastcgi_busy_buffers_size 256k;
             fastcgi_temp_file_write_size 256k;
-            fastcgi_read_timeout 300;
+            fastcgi_read_timeout 600;
+            fastcgi_send_timeout 600;
+            fastcgi_connect_timeout 60;
         }
         
         # WordPress login with rate limiting
@@ -402,11 +428,13 @@ RUN pecl uninstall -n imagick && \\
 
 # Create a custom entrypoint script
 RUN echo '#!/bin/bash\\\\n\\\\
-# Ensure nginx cache directory has proper permissions\\\\n\\\\
-if [ -d "/var/cache/nginx" ]; then\\\\n\\\\
-    # Make cache directory writable by www-data\\\\n\\\\
-    chmod -R 777 /var/cache/nginx\\\\n\\\\
-fi\\\\n\\\\
+# Ensure nginx cache directories exist and have proper permissions\\\\n\\\\
+mkdir -p /var/cache/nginx/client_temp\\\\n\\\\
+mkdir -p /var/cache/nginx/fastcgi_temp\\\\n\\\\
+mkdir -p /var/cache/nginx/proxy_temp\\\\n\\\\
+mkdir -p /var/cache/nginx/scgi_temp\\\\n\\\\
+mkdir -p /var/cache/nginx/uwsgi_temp\\\\n\\\\
+chmod -R 777 /var/cache/nginx\\\\n\\\\
 # Call the original entrypoint\\\\n\\\\
 exec docker-entrypoint.sh "$@"' > /custom-entrypoint.sh && \\\\
     chmod +x /custom-entrypoint.sh
