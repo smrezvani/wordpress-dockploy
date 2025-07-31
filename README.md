@@ -54,6 +54,17 @@ Production-ready WordPress deployment optimized for high-traffic sites with 1M+ 
 
 3. **Configure Environment Variables**
    
+   **Option A: Use Default Values (Quick Start)**
+   - The stack now includes working default values
+   - Deploy immediately without configuration
+   - ⚠️ **IMPORTANT**: Change passwords before production use!
+   
+   **Option B: Copy from .env.example**
+   - Copy `.env.example` to `.env`
+   - Modify passwords and settings
+   - Upload to Dokploy environment variables
+   
+   **Option C: Manual Configuration**
    In Dokploy project settings, add these environment variables:
    
    ```env
