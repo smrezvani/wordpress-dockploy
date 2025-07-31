@@ -188,14 +188,12 @@ content = '''services:
       WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
       WORDPRESS_CONFIG_EXTRA: |
         /* Redis Configuration */
-        if (getenv('REDIS_PASSWORD')) {
-          define('WP_REDIS_HOST', 'redis');
-          define('WP_REDIS_PORT', 6379);
-          define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
-          define('WP_REDIS_TIMEOUT', 1);
-          define('WP_REDIS_READ_TIMEOUT', 1);
-          define('WP_REDIS_DATABASE', 0);
-        }
+        define('WP_REDIS_HOST', 'redis');
+        define('WP_REDIS_PORT', 6379);
+        define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
+        define('WP_REDIS_TIMEOUT', 1);
+        define('WP_REDIS_READ_TIMEOUT', 1);
+        define('WP_REDIS_DATABASE', 0);
         
         /* Performance Settings */
         define('WP_MEMORY_LIMIT', '512M');
