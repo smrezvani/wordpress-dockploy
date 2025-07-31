@@ -363,12 +363,12 @@ RUN apt-get update && apt-get install -y \\
     libdav1d-dev \\
     && rm -rf /var/lib/apt/lists/*
 
-# Build and install libavif from source
+# Build and install libavif from source with libyuv
 RUN cd /tmp && \\
     git clone https://github.com/AOMediaCodec/libavif.git && \\
     cd libavif && \\
     mkdir build && cd build && \\
-    cmake -DCMAKE_BUILD_TYPE=Release -DAVIF_CODEC_AOM=ON -DAVIF_CODEC_DAV1D=ON .. && \\
+    cmake -DCMAKE_BUILD_TYPE=Release -DAVIF_CODEC_AOM=ON -DAVIF_CODEC_DAV1D=ON -DAVIF_LIBYUV=LOCAL .. && \\
     make -j$(nproc) && \\
     make install && \\
     ldconfig && \\
