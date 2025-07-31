@@ -6,10 +6,11 @@ Enhanced WordPress deployment based on Dokploy's template with added Nginx rever
 
 - **WordPress** with PHP 8.4-FPM (high performance)
 - **MySQL 8.4** database
+- **Redis 7** for object caching
 - **Nginx** with FastCGI caching
 - **Security headers** and access restrictions
 - **Performance optimizations** built-in
-- **Simple configuration** - only 3 environment variables
+- **Simple configuration** - minimal environment variables
 
 ## Quick Start
 
@@ -66,7 +67,9 @@ In Dokploy's Domain settings, make sure to:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_NAME` | Required | WordPress database name |
-| `DB_PASSWORD` | Required | MySQL root & WordPress password |
+| `DB_USER` | Required | WordPress database user |
+| `DB_PASSWORD` | Required | MySQL & WordPress password |
+| `REDIS_PASSWORD` | Required | Redis password |
 | `WORDPRESS_DEBUG` | `0` | Enable debug mode (1) or not (0) |
 
 ## File Structure
@@ -76,7 +79,10 @@ In Dokploy's Domain settings, make sure to:
 ├── docker-compose.yml   # Main orchestration file
 ├── nginx.conf          # Nginx configuration
 ├── uploads.ini         # PHP upload settings
-└── .env.example        # Example environment file
+├── template.toml       # Dokploy template configuration
+├── Dockerfile.nginx    # Custom nginx image
+├── .env.example        # Example environment file
+└── .gitignore          # Git ignore rules
 ```
 
 ## Customization
@@ -100,6 +106,14 @@ Edit `nginx.conf` to adjust:
 - WordPress file editing is disabled by default
 - SSL admin is enforced when using HTTPS
 - Sensitive files are blocked by Nginx
+
+## Redis Setup
+
+After deployment, install the "Redis Object Cache" plugin:
+1. Go to WordPress Admin → Plugins → Add New
+2. Search for "Redis Object Cache" by Till Krüss
+3. Install and activate the plugin
+4. Go to Settings → Redis and click "Enable Object Cache"
 
 ## Support
 
