@@ -1,15 +1,15 @@
 # Dokploy Template Metadata
-name: WordPress with Nginx & PHP-FPM
-description: Enterprise WordPress stack optimized for 1M+ articles with Nginx, PHP 8.4-FPM, MySQL 8.4, Redis caching, and advanced performance tuning
-version: 1.0.0
+name: WordPress Optimized
+description: Enhanced WordPress stack with Nginx reverse proxy, performance optimizations, and security hardening
+version: 2.0.0
 tags:
   - wordpress
   - cms
   - blog
   - nginx
-  - php-fpm
-  - redis
+  - mysql
+  - optimized
 author: Community
-repository: https://github.com/betlandpro/wordpress
+repository: https://github.com/smrezvani/wordpress-dockploy
 license: MIT
 logo: https://raw.githubusercontent.com/docker-library/docs/master/wordpress/logo.png

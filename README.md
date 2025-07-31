@@ -1,246 +1,90 @@
-# WordPress Stack for Dokploy (External Database)
+# Optimized WordPress Stack for Dokploy
 
-Production-ready WordPress deployment with Nginx and PHP 8.4-FPM, designed to work with external MySQL and Redis services.
-
-## Stack Components
-
-- **WordPress**: Latest with PHP 8.4-FPM
-- **Nginx**: High-performance web server with FastCGI cache
-- **Cron**: Dedicated container for WordPress scheduled tasks
-- **External MySQL**: Connect to your existing MySQL/MariaDB instance
-- **External Redis** (Optional): Connect to your existing Redis instance
+Enhanced WordPress deployment based on Dokploy's template with added Nginx reverse proxy, performance optimizations, and security hardening.
 
 ## Features
 
-### Performance Optimizations
-- FastCGI page caching with intelligent cache bypass rules
-- Redis object caching for database query optimization
-- PHP-FPM tuned for high concurrency (100 max children)
-- MySQL configured for 2GB+ buffer pool and optimized for large datasets
-- Nginx worker processes with 4096 connections each
-- Static asset caching with 365-day expiration
-- Gzip compression for all text-based content
+- **WordPress** with Apache (latest)
+- **MySQL 8.4** database
+- **Nginx** reverse proxy for better performance
+- **Security headers** and access restrictions
+- **Performance optimizations** built-in
+- **Simple configuration** - only 3 environment variables
 
-### Security Features
-- Rate limiting on login attempts (5 req/sec)
-- API rate limiting (50 req/sec)
-- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
-- Blocked access to sensitive files (xmlrpc.php, wp-config.php, hidden files)
-- Forced SSL for admin area
-- File editing disabled in admin panel
+## Quick Start
 
-### High Availability
-- Health checks for all services
-- Automatic container restart on failure
-- Persistent volumes for WordPress files and databases
-- Redis persistence with AOF and RDB snapshots
+1. **Deploy in Dokploy**
+   - Create new Docker Compose project
+   - Use this repository
 
-## Deployment on Dokploy
-
-### Prerequisites
-1. Dokploy instance running
-2. Git repository with this code
-3. Domain name configured
-
-### Deployment Steps
-
-1. **Fork/Clone this repository**
-
-2. **Create Docker Compose Project in Dokploy**
-   - Go to Projects → Create New Project
-   - Select "Docker Compose"
-   - Choose "Git Repository"
-   - Enter your repository URL
-
-3. **Configure Environment Variables**
-   
-   **Option A: Using DATABASE_URL (Recommended for Dokploy)**
-   If you have a MySQL URL from Dokploy, just add this one variable:
-   
+2. **Set Environment Variables**
    ```env
-   DATABASE_URL=mysql://user:password@host:port/database
-   ```
-   
-   Example:
-   ```env
-   DATABASE_URL=mysql://mysql:efw3zo2ivw98dpgf@cika-host-wpdb-zgtbn8:3306/mysql
-   ```
-   
-   **Option B: Using Individual Variables**
-   Or use separate variables:
-   
-   ```env
-   # MySQL Configuration
-   MYSQL_ROOT_PASSWORD=<generate-strong-password>
-   DB_USER=wordpress_user
-   DB_PASSWORD=<generate-strong-password>
-   DB_NAME=wordpress_production
-   
-   # Redis Configuration
-   REDIS_PASSWORD=<generate-strong-password>
-   REDIS_MAX_MEMORY=2gb
-   
-   # WordPress Configuration
-   TABLE_PREFIX=wp_
-   WP_DEBUG=false
-   WP_MEMORY_LIMIT=512M
-   WP_MAX_MEMORY_LIMIT=1024M
-   FORCE_SSL_ADMIN=true
-   
-   # Performance Settings
-   WP_POST_REVISIONS=5
-   AUTOSAVE_INTERVAL=300
-   EMPTY_TRASH_DAYS=30
-   
-   # PHP Configuration
-   PHP_MEMORY_LIMIT=512M
-   PHP_MAX_EXECUTION_TIME=300
-   PHP_MAX_INPUT_VARS=5000
+   WORDPRESS_DEBUG=0
+   DB_NAME=wordpress
+   DB_PASSWORD=your_secure_password_here
    ```
 
-4. **Deploy the Stack**
-   - Click "Deploy" in Dokploy
-   - Wait for all services to become healthy
+3. **Deploy** - That's it!
 
-5. **Configure Domain**
-   - Go to Domains tab in your project
-   - Add your domain
-   - Service: `nginx`
-   - Port: `80`
-   - Enable SSL (Let's Encrypt)
+## What's Improved
 
-6. **Complete WordPress Installation**
-   - Visit your domain
-   - Follow WordPress setup wizard
-   - Use the database credentials from your environment variables
+### Over Default Dokploy Template
 
-## Post-Installation
+1. **Nginx Reverse Proxy**
+   - Static file caching (365 days)
+   - Gzip compression
+   - Security headers
 
-### Essential Plugins for 1M+ Articles
+2. **WordPress Optimizations**
+   - Memory limits increased (512M/1024M)
+   - File compression enabled
+   - Smart revision limits
+   - Security hardening
 
-1. **Redis Object Cache** (by Till Krüss)
-   - Install from WordPress admin
-   - Enable object cache in plugin settings
+3. **Better Structure**
+   - Cleaner file organization
+   - Production-ready settings
 
-2. **Query Monitor** (for development/staging only)
-   - Helps identify slow queries and bottlenecks
+## Environment Variables
 
-3. **WP Rocket** or **W3 Total Cache**
-   - Additional caching layer
-   - CDN integration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_NAME` | Required | WordPress database name |
+| `DB_PASSWORD` | Required | MySQL root & WordPress password |
+| `WORDPRESS_DEBUG` | `0` | Enable debug mode (1) or not (0) |
 
-4. **Yoast SEO** or **RankMath**
-   - SEO optimization for large content sites
+## File Structure
 
-### Performance Tuning
-
-1. **Enable Redis Cache**
-   ```bash
-   wp plugin install redis-cache --activate
-   wp redis enable
-   ```
-
-2. **Optimize Database Tables**
-   ```bash
-   wp db optimize
-   ```
-
-3. **Configure Permalinks**
-   - Settings → Permalinks → Post name
-
-4. **Set up CDN** (recommended)
-   - Configure CloudFlare or similar CDN
-   - Update WordPress to serve media from CDN
-
-## Monitoring
-
-### Check Service Health
-- MySQL: `http://your-domain/wp-admin/` (database connection)
-- Redis: Check Redis Object Cache plugin status
-- Nginx: `http://your-domain/nginx-health`
-- PHP-FPM: Check WordPress site responsiveness
-
-### View Logs
-In Dokploy, check logs for each service:
-- nginx: Access and error logs
-- wordpress: PHP errors
-- mysql: Slow query log
-- redis: Operation logs
-
-## Scaling Recommendations
-
-### For 10M+ Articles
-1. Implement Elasticsearch for search
-2. Use dedicated MySQL read replicas
-3. Implement full-page caching with Varnish
-4. Consider horizontal scaling with load balancer
-
-### Database Maintenance
-```bash
-# Regular optimization (monthly)
-wp db optimize
-
-# Clean up revisions
-wp post delete $(wp post list --post_type='revision' --format=ids) --force
-
-# Clean up transients
-wp transient delete --expired
+```
+.
+├── docker-compose.yml   # Main orchestration file
+├── nginx.conf          # Nginx configuration
+├── uploads.ini         # PHP upload settings
+└── .env.example        # Example environment file
 ```
 
-## Backup Strategy
+## Customization
 
-1. **Database Backups**
-   - Configure automated MySQL dumps
-   - Store in external object storage
+### PHP Settings
+Edit `uploads.ini` to adjust:
+- Upload size limits
+- Memory limits
+- Execution time
+- Input variables
 
-2. **File Backups**
-   - Backup `/wordpress` volume
-   - Include uploads and themes
+### Nginx Settings
+Edit `nginx.conf` to adjust:
+- Caching rules
+- Security headers
+- Proxy settings
 
-3. **Redis Backups**
-   - Redis automatically saves snapshots
-   - Located in `/redis_data` volume
+## Security Notes
 
-## Troubleshooting
-
-### MySQL Container Restart Loop
-If MySQL keeps restarting:
-1. Ensure environment variables are set in Dokploy
-2. Check logs: `docker logs cika-host-wordpress-wvx9us-mysql-1`
-3. Try using `docker-compose.dokploy.yml` instead (hardcoded values)
-4. Increase start_period in healthcheck (already set to 60s)
-
-### High Memory Usage
-- Reduce `pm.max_children` in php-fpm.conf
-- Lower MySQL `innodb_buffer_pool_size`
-- Adjust Redis `maxmemory` setting
-
-### Slow Queries
-- Enable slow query log in MySQL
-- Use Query Monitor plugin
-- Add database indexes as needed
-
-### Cache Issues
-- Clear Redis cache: `wp redis flush`
-- Clear Nginx cache: Restart nginx container
-- Check cache headers: `curl -I your-domain.com`
-
-## Security Checklist
-
-- [ ] Change all default passwords
-- [ ] Enable 2FA for WordPress admin
-- [ ] Regular security updates
-- [ ] Configure backup retention
-- [ ] Monitor access logs
-- [ ] Set up fail2ban (optional)
+- Change `DB_PASSWORD` to a strong password
+- WordPress file editing is disabled by default
+- SSL admin is enforced when using HTTPS
+- Sensitive files are blocked by Nginx
 
 ## Support
 
-For issues specific to this stack:
-1. Check container logs in Dokploy
-2. Verify environment variables
-3. Ensure sufficient server resources
-
-For Dokploy-specific issues:
-- [Dokploy Documentation](https://docs.dokploy.com)
-- [Dokploy GitHub](https://github.com/dokploy/dokploy)
+Based on Dokploy's official WordPress template with enhancements for production use.
