@@ -3,23 +3,24 @@
 .env.local
 .env.*.local
 
-# Editor directories and files
-.idea
+# Editor directories
 .vscode
+.idea
 *.swp
 *.swo
-*~
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Docker volumes
+wp_data/
+wp_app/
 
 # Logs
 *.log
 
-# WordPress files (if running locally)
-wordpress/
-
-# Docker volumes
-volumes/
-
 # Temporary files
 *.tmp
 *.temp
+*~

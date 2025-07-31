@@ -1,6 +1,6 @@
 # Dokploy Template Metadata
 name: WordPress Optimized
-description: Enhanced WordPress stack with Nginx reverse proxy, performance optimizations, and security hardening
+description: High-performance WordPress stack with PHP-FPM, Nginx, FastCGI caching, and security hardening
 version: 2.0.0
 tags:
   - wordpress

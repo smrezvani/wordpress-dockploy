@@ -28,11 +28,18 @@ Enhanced WordPress deployment based on Dokploy's template with added Nginx rever
 
 ## Architecture
 
-The stack uses PHP-FPM (FastCGI Process Manager) instead of Apache for better performance:
+The stack uses PHP-FPM (FastCGI Process Manager) for better performance:
 - **PHP-FPM** runs on port 9000 (internal)
-- **Nginx** handles static files directly
+- **Nginx** handles static files directly  
 - **FastCGI** passes PHP requests to PHP-FPM
 - **Caching** at both Nginx and PHP levels
+
+## Important Configuration
+
+In Dokploy's Domain settings, make sure to:
+- Service: `nginx` (NOT `wordpress`)
+- Port: `80`
+- Container Port: `80`
 
 ## What's Improved
 
