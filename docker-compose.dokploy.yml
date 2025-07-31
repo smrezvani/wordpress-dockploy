@@ -6,16 +6,16 @@ services:
     restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-ChangeMe_RootPass2024!}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pChangeMe_RootPass2024!"]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 90s
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ChangeMe_RootPass2024!}
-      MYSQL_DATABASE: ${DB_NAME:-wordpress_production}
-      MYSQL_USER: ${DB_USER:-wordpress_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-ChangeMe_DBPass2024!}
+      MYSQL_ROOT_PASSWORD: ChangeMe_RootPass2024!
+      MYSQL_DATABASE: wordpress_production
+      MYSQL_USER: wordpress_user
+      MYSQL_PASSWORD: ChangeMe_DBPass2024!
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
@@ -25,9 +25,9 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-ChangeMe_RedisPass2024!} --maxmemory ${REDIS_MAX_MEMORY:-2gb} --maxmemory-policy allkeys-lru --save 60 1 --save 300 10 --save 900 100
+    command: redis-server --requirepass ChangeMe_RedisPass2024! --maxmemory 2gb --maxmemory-policy allkeys-lru --save 60 1 --save 300 10 --save 900 100
     healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-ChangeMe_RedisPass2024!}", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "ChangeMe_RedisPass2024!", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,48 +52,39 @@ services:
     environment:
       # Database
       WORDPRESS_DB_HOST: mysql:3306
-      WORDPRESS_DB_USER: ${DB_USER:-wordpress_user}
-      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-ChangeMe_DBPass2024!}
-      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress_production}
-      WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX:-wp_}
-      WORDPRESS_DEBUG: ${WP_DEBUG:-false}
-      # Salts (optional - WordPress will generate if not provided)
-      WORDPRESS_AUTH_KEY: ${WORDPRESS_AUTH_KEY:-}
-      WORDPRESS_SECURE_AUTH_KEY: ${WORDPRESS_SECURE_AUTH_KEY:-}
-      WORDPRESS_LOGGED_IN_KEY: ${WORDPRESS_LOGGED_IN_KEY:-}
-      WORDPRESS_NONCE_KEY: ${WORDPRESS_NONCE_KEY:-}
-      WORDPRESS_AUTH_SALT: ${WORDPRESS_AUTH_SALT:-}
-      WORDPRESS_SECURE_AUTH_SALT: ${WORDPRESS_SECURE_AUTH_SALT:-}
-      WORDPRESS_LOGGED_IN_SALT: ${WORDPRESS_LOGGED_IN_SALT:-}
-      WORDPRESS_NONCE_SALT: ${WORDPRESS_NONCE_SALT:-}
+      WORDPRESS_DB_USER: wordpress_user
+      WORDPRESS_DB_PASSWORD: ChangeMe_DBPass2024!
+      WORDPRESS_DB_NAME: wordpress_production
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_DEBUG: false
       # PHP Configuration
-      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-512M}
-      PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-300}
-      PHP_MAX_INPUT_VARS: ${PHP_MAX_INPUT_VARS:-5000}
+      PHP_MEMORY_LIMIT: 512M
+      PHP_MAX_EXECUTION_TIME: 300
+      PHP_MAX_INPUT_VARS: 5000
       # Extra configuration
       WORDPRESS_CONFIG_EXTRA: |
         /* Redis Configuration */
         define('WP_REDIS_HOST', 'redis');
         define('WP_REDIS_PORT', 6379);
-        define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD:-ChangeMe_RedisPass2024!}');
+        define('WP_REDIS_PASSWORD', 'ChangeMe_RedisPass2024!');
         define('WP_REDIS_DATABASE', 0);
         define('WP_REDIS_TIMEOUT', 1);
         define('WP_REDIS_READ_TIMEOUT', 1);
         define('WP_REDIS_DISABLED', false);
-        define('WP_CACHE_KEY_SALT', '${DB_NAME:-wordpress_production}_');
+        define('WP_CACHE_KEY_SALT', 'wordpress_production_');
         
         /* Performance Settings */
-        define('WP_MEMORY_LIMIT', '${WP_MEMORY_LIMIT:-512M}');
-        define('WP_MAX_MEMORY_LIMIT', '${WP_MAX_MEMORY_LIMIT:-1024M}');
+        define('WP_MEMORY_LIMIT', '512M');
+        define('WP_MAX_MEMORY_LIMIT', '1024M');
         define('DISABLE_WP_CRON', true);
-        define('WP_POST_REVISIONS', ${WP_POST_REVISIONS:-5});
-        define('AUTOSAVE_INTERVAL', ${AUTOSAVE_INTERVAL:-300});
-        define('EMPTY_TRASH_DAYS', ${EMPTY_TRASH_DAYS:-30});
+        define('WP_POST_REVISIONS', 5);
+        define('AUTOSAVE_INTERVAL', 300);
+        define('EMPTY_TRASH_DAYS', 30);
         
         /* Security Settings */
-        define('FORCE_SSL_ADMIN', ${FORCE_SSL_ADMIN:-true});
+        define('FORCE_SSL_ADMIN', true);
         define('DISALLOW_FILE_EDIT', true);
-        define('DISALLOW_FILE_MODS', ${DISALLOW_FILE_MODS:-false});
+        define('DISALLOW_FILE_MODS', false);
         
         /* Database Optimization */
         define('WP_ALLOW_REPAIR', false);
@@ -129,9 +120,9 @@ services:
     environment:
       # Same environment as wordpress service
       WORDPRESS_DB_HOST: mysql:3306
-      WORDPRESS_DB_USER: ${DB_USER:-wordpress_user}
-      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-ChangeMe_DBPass2024!}
-      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress_production}
+      WORDPRESS_DB_USER: wordpress_user
+      WORDPRESS_DB_PASSWORD: ChangeMe_DBPass2024!
+      WORDPRESS_DB_NAME: wordpress_production
     volumes:
       - wordpress:/var/www/html
     entrypoint: /bin/sh

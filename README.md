@@ -210,6 +210,13 @@ wp transient delete --expired
 
 ## Troubleshooting
 
+### MySQL Container Restart Loop
+If MySQL keeps restarting:
+1. Ensure environment variables are set in Dokploy
+2. Check logs: `docker logs cika-host-wordpress-wvx9us-mysql-1`
+3. Try using `docker-compose.dokploy.yml` instead (hardcoded values)
+4. Increase start_period in healthcheck (already set to 60s)
+
 ### High Memory Usage
 - Reduce `pm.max_children` in php-fpm.conf
 - Lower MySQL `innodb_buffer_pool_size`
