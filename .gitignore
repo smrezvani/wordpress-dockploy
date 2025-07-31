@@ -1,0 +1,25 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# WordPress files (if running locally)
+wordpress/
+
+# Docker volumes
+volumes/
+
+# Temporary files
+*.tmp
+*.temp
