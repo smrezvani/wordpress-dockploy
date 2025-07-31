@@ -54,18 +54,27 @@ Production-ready WordPress deployment optimized for high-traffic sites with 1M+ 
 
 3. **Configure Environment Variables**
    
-   **Option A: Use Default Values (Quick Start)**
-   - The stack now includes working default values
-   - Deploy immediately without configuration
-   - ⚠️ **IMPORTANT**: Change passwords before production use!
+   **Quick Start (Recommended)**
+   Copy and paste this into Dokploy's Environment Variables section:
    
-   **Option B: Copy from .env.example**
-   - Copy `.env.example` to `.env`
-   - Modify passwords and settings
-   - Upload to Dokploy environment variables
+   ```env
+   MYSQL_ROOT_PASSWORD=ChangeMe_RootPass2024!
+   DB_USER=wordpress_user
+   DB_PASSWORD=ChangeMe_DBPass2024!
+   DB_NAME=wordpress_production
+   REDIS_PASSWORD=ChangeMe_RedisPass2024!
+   ```
    
-   **Option C: Manual Configuration**
-   In Dokploy project settings, add these environment variables:
+   **For Production Use**
+   Generate secure passwords using the included script:
+   ```bash
+   ./generate-env.sh
+   ```
+   
+   Then copy the output to Dokploy's environment variables.
+   
+   **Full Variable List**
+   For complete control, configure all variables:
    
    ```env
    # MySQL Configuration

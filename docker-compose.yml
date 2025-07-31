@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-ChangeMe_RootPass2024!}"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -80,7 +80,7 @@ services:
         define('WP_REDIS_TIMEOUT', 1);
         define('WP_REDIS_READ_TIMEOUT', 1);
         define('WP_REDIS_DISABLED', false);
-        define('WP_CACHE_KEY_SALT', '${DB_NAME}_');
+        define('WP_CACHE_KEY_SALT', '${DB_NAME:-wordpress_production}_');
         
         /* Performance Settings */
         define('WP_MEMORY_LIMIT', '${WP_MEMORY_LIMIT:-512M}');
