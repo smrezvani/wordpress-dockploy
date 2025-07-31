@@ -173,10 +173,34 @@ http {
 '''
 
 [[config.mounts]]
+filePath = "Dockerfile.wordpress"
+content = """FROM wordpress:php8.4-fpm
+
+# Install sudo for permission handling
+RUN apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*
+
+# Create a custom entrypoint script
+RUN echo '#!/bin/bash\\n\\
+# Ensure nginx cache directory has proper permissions\\n\\
+if [ -d "/var/cache/nginx" ]; then\\n\\
+    # Make cache directory writable by www-data\\n\\
+    chmod -R 777 /var/cache/nginx\\n\\
+fi\\n\\
+# Call the original entrypoint\\n\\
+exec docker-entrypoint.sh "$@"' > /custom-entrypoint.sh && \\
+    chmod +x /custom-entrypoint.sh
+
+ENTRYPOINT ["/custom-entrypoint.sh"]
+CMD ["php-fpm"]
+"""
+
+[[config.mounts]]
 filePath = "docker-compose.yml"
 content = '''services:
   wordpress:
-    image: wordpress:php8.4-fpm
+    build:
+      context: .
+      dockerfile: Dockerfile.wordpress
     volumes:
       - wp_app:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
