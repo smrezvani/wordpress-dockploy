@@ -62,18 +62,5 @@ RUN pecl uninstall -n imagick && \
     pecl install imagick && \
     docker-php-ext-enable imagick
 
-# Create a custom entrypoint script
-RUN echo '#!/bin/bash\n\
-# Ensure nginx cache directories exist and have proper permissions\n\
-mkdir -p /var/cache/nginx/client_temp\n\
-mkdir -p /var/cache/nginx/fastcgi_temp\n\
-mkdir -p /var/cache/nginx/proxy_temp\n\
-mkdir -p /var/cache/nginx/scgi_temp\n\
-mkdir -p /var/cache/nginx/uwsgi_temp\n\
-chmod -R 777 /var/cache/nginx\n\
-# Call the original entrypoint\n\
-exec docker-entrypoint.sh "$@"' > /custom-entrypoint.sh && \
-    chmod +x /custom-entrypoint.sh
-
-ENTRYPOINT ["/custom-entrypoint.sh"]
+# No custom entrypoint needed - using default
 CMD ["php-fpm"]

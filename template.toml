@@ -40,13 +40,20 @@ max_input_vars = 5000
 [[config.mounts]]
 filePath = "nginx-entrypoint.sh"
 content = """#!/bin/sh
-# Ensure nginx cache directories exist with proper permissions
-mkdir -p /var/cache/nginx/client_temp
-mkdir -p /var/cache/nginx/fastcgi_temp
-mkdir -p /var/cache/nginx/proxy_temp
-mkdir -p /var/cache/nginx/scgi_temp
-mkdir -p /var/cache/nginx/uwsgi_temp
+# Wait a moment for cache-init to complete (safety measure)
+sleep 2
+
+# Ensure nginx cache directories exist with proper permissions (double-check)
+for dir in client_temp fastcgi_temp proxy_temp scgi_temp uwsgi_temp; do
+    if [ ! -d "/var/cache/nginx/$dir" ]; then
+        mkdir -p "/var/cache/nginx/$dir"
+        echo "Created missing directory: /var/cache/nginx/$dir"
+    fi
+done
+
+# Set proper permissions
 chmod -R 777 /var/cache/nginx
+echo "Cache directories ready"
 
 # Call the original nginx entrypoint
 exec /docker-entrypoint.sh nginx -g "daemon off;"
@@ -426,26 +433,49 @@ RUN pecl uninstall -n imagick && \\
     pecl install imagick && \\
     docker-php-ext-enable imagick
 
-# Create a custom entrypoint script
-RUN echo '#!/bin/bash\\\\n\\\\
-# Ensure nginx cache directories exist and have proper permissions\\\\n\\\\
-mkdir -p /var/cache/nginx/client_temp\\\\n\\\\
-mkdir -p /var/cache/nginx/fastcgi_temp\\\\n\\\\
-mkdir -p /var/cache/nginx/proxy_temp\\\\n\\\\
-mkdir -p /var/cache/nginx/scgi_temp\\\\n\\\\
-mkdir -p /var/cache/nginx/uwsgi_temp\\\\n\\\\
-chmod -R 777 /var/cache/nginx\\\\n\\\\
-# Call the original entrypoint\\\\n\\\\
-exec docker-entrypoint.sh "$@"' > /custom-entrypoint.sh && \\\\
-    chmod +x /custom-entrypoint.sh
-
-ENTRYPOINT ["/custom-entrypoint.sh"]
+# No custom entrypoint needed - using default
 CMD ["php-fpm"]
+"""
+
+[[config.mounts]]
+filePath = "Dockerfile.cache-init"
+content = """FROM alpine:latest
+
+# Create cache directories with proper permissions
+RUN mkdir -p /var/cache/nginx/client_temp \\
+    /var/cache/nginx/fastcgi_temp \\
+    /var/cache/nginx/proxy_temp \\
+    /var/cache/nginx/scgi_temp \\
+    /var/cache/nginx/uwsgi_temp \\
+    && chmod -R 777 /var/cache/nginx
+
+# Create a volume
+VOLUME ["/var/cache/nginx"]
+
+# Keep container running
+CMD ["tail", "-f", "/dev/null"]
 """
 
 [[config.mounts]]
 filePath = "docker-compose.yml"
 content = '''services:
+  cache-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.cache-init
+    volumes:
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - dokploy-network
+    command: |
+      sh -c '
+        mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/fastcgi_temp /var/cache/nginx/proxy_temp /var/cache/nginx/scgi_temp /var/cache/nginx/uwsgi_temp
+        chmod -R 777 /var/cache/nginx
+        echo "Cache directories initialized"
+        # Exit after initialization
+        exit 0
+      '
+
   wordpress:
     build:
       context: .
@@ -453,7 +483,6 @@ content = '''services:
     volumes:
       - wp_app:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
-      - nginx_cache:/var/cache/nginx
     environment:
       WORDPRESS_DB_HOST: wp_db:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
@@ -500,15 +529,17 @@ content = '''services:
     depends_on:
       wp_db:
         condition: service_healthy
+      cache-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - dokploy-network
     healthcheck:
-      test: ["CMD-SHELL", "pidof php-fpm || exit 1"]
+      test: ["CMD-SHELL", "pidof php-fpm && test -d /var/www/html/wp-content || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   wp_db:
     image: mysql:8.4
@@ -544,12 +575,21 @@ content = '''services:
       dockerfile: Dockerfile.nginx
     restart: unless-stopped
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_healthy
+      cache-init:
+        condition: service_completed_successfully
     volumes:
       - wp_app:/var/www/html:ro
       - nginx_cache:/var/cache/nginx
     networks:
       - dokploy-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   wp_data:

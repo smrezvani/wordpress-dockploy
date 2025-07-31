@@ -1,11 +1,18 @@
 #!/bin/sh
-# Ensure nginx cache directories exist with proper permissions
-mkdir -p /var/cache/nginx/client_temp
-mkdir -p /var/cache/nginx/fastcgi_temp
-mkdir -p /var/cache/nginx/proxy_temp
-mkdir -p /var/cache/nginx/scgi_temp
-mkdir -p /var/cache/nginx/uwsgi_temp
+# Wait a moment for cache-init to complete (safety measure)
+sleep 2
+
+# Ensure nginx cache directories exist with proper permissions (double-check)
+for dir in client_temp fastcgi_temp proxy_temp scgi_temp uwsgi_temp; do
+    if [ ! -d "/var/cache/nginx/$dir" ]; then
+        mkdir -p "/var/cache/nginx/$dir"
+        echo "Created missing directory: /var/cache/nginx/$dir"
+    fi
+done
+
+# Set proper permissions
 chmod -R 777 /var/cache/nginx
+echo "Cache directories ready"
 
 # Call the original nginx entrypoint
 exec /docker-entrypoint.sh nginx -g "daemon off;"

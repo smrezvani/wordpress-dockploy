@@ -1,4 +1,21 @@
 services:
+  cache-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.cache-init
+    volumes:
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - dokploy-network
+    command: |
+      sh -c '
+        mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/fastcgi_temp /var/cache/nginx/proxy_temp /var/cache/nginx/scgi_temp /var/cache/nginx/uwsgi_temp
+        chmod -R 777 /var/cache/nginx
+        echo "Cache directories initialized"
+        # Exit after initialization
+        exit 0
+      '
+
   wordpress:
     build:
       context: .
@@ -6,7 +23,6 @@ services:
     volumes:
       - wp_app:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
-      - nginx_cache:/var/cache/nginx
     environment:
       WORDPRESS_DB_HOST: wp_db:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
@@ -53,15 +69,17 @@ services:
     depends_on:
       wp_db:
         condition: service_healthy
+      cache-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - dokploy-network
     healthcheck:
-      test: ["CMD-SHELL", "pidof php-fpm || exit 1"]
+      test: ["CMD-SHELL", "pidof php-fpm && test -d /var/www/html/wp-content || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   wp_db:
     image: mysql:8.4
@@ -97,12 +115,21 @@ services:
       dockerfile: Dockerfile.nginx
     restart: unless-stopped
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_healthy
+      cache-init:
+        condition: service_completed_successfully
     volumes:
       - wp_app:/var/www/html:ro
       - nginx_cache:/var/cache/nginx
     networks:
       - dokploy-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   wp_data:
