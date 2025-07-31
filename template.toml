@@ -57,11 +57,53 @@ http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
     
+    # Real IP configuration for Cloudflare and Docker
+    # Cloudflare IPv4
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 104.16.0.0/13;
+    set_real_ip_from 104.24.0.0/14;
+    set_real_ip_from 172.64.0.0/13;
+    set_real_ip_from 131.0.72.0/22;
+    
+    # Cloudflare IPv6
+    set_real_ip_from 2400:cb00::/32;
+    set_real_ip_from 2606:4700::/32;
+    set_real_ip_from 2803:f800::/32;
+    set_real_ip_from 2405:b500::/32;
+    set_real_ip_from 2405:8100::/32;
+    set_real_ip_from 2a06:98c0::/29;
+    set_real_ip_from 2c0f:f248::/32;
+    
+    # Docker/local networks
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    set_real_ip_from 127.0.0.1;
+    
+    # Use CF-Connecting-IP header from Cloudflare
+    real_ip_header CF-Connecting-IP;
+    real_ip_recursive on;
+    
     # Performance
     sendfile on;
     tcp_nopush on;
     tcp_nodelay on;
     keepalive_timeout 65;
+    
+    # Security
+    server_tokens off;
+    client_max_body_size 100M;
+    client_body_buffer_size 128k;
     
     # Gzip
     gzip on;
@@ -74,6 +116,14 @@ http {
     fastcgi_cache_key "$scheme$request_method$http_host$request_uri";
     fastcgi_cache_use_stale error timeout updating invalid_header http_500 http_503;
     
+    # Rate limiting zones
+    limit_req_zone $binary_remote_addr zone=wplogin:10m rate=3r/s;
+    limit_req_zone $binary_remote_addr zone=wprest:10m rate=10r/s;
+    
+    # Logging
+    error_log /var/log/nginx/error.log warn;
+    access_log /var/log/nginx/access.log;
+    
     server {
         listen 80;
         server_name _;
@@ -81,10 +131,45 @@ http {
         root /var/www/html;
         index index.php index.html;
         
-        # Security headers
+        # Error pages
+        error_page 404 /404.html;
+        error_page 500 502 503 504 /50x.html;
+        
+        # Global security headers
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        
+        # Favicon and robots.txt
+        location = /favicon.ico {
+            log_not_found off;
+            access_log off;
+        }
+        
+        location = /robots.txt {
+            log_not_found off;
+            access_log off;
+            allow all;
+        }
+        
+        # REST API
+        location /wp-json/ {
+            limit_req zone=wprest burst=20 nodelay;
+            try_files $uri $uri/ /index.php?$args;
+            
+            # CORS headers for REST API
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+        }
         
         # WordPress
         location / {
@@ -104,8 +189,18 @@ http {
             include fastcgi_params;
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
             fastcgi_param PATH_INFO $fastcgi_path_info;
+            fastcgi_param PATH_TRANSLATED $document_root$fastcgi_path_info;
             
-            # FastCGI cache
+            # Pass real IP to PHP
+            fastcgi_param REMOTE_ADDR $remote_addr;
+            fastcgi_param HTTP_X_REAL_IP $remote_addr;
+            fastcgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
+            
+            # Pass authorization headers
+            fastcgi_param HTTP_AUTHORIZATION $http_authorization;
+            fastcgi_pass_header Authorization;
+            
+            # FastCGI cache settings
             set $skip_cache 0;
             
             # POST requests should always go to PHP
@@ -113,17 +208,22 @@ http {
                 set $skip_cache 1;
             }
             
-            # URLs with query strings should always go to PHP
-            if ($query_string != "") {
+            # Don't cache for specific query strings
+            if ($query_string ~* "preview=true|wp_customize=on") {
                 set $skip_cache 1;
             }
             
-            # Don't cache WordPress admin, login, and API pages
-            if ($request_uri ~* "/wp-admin/|/wp-json/|/xmlrpc.php|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml") {
+            # Don't cache REST API requests
+            if ($query_string ~* "rest_route") {
                 set $skip_cache 1;
             }
             
-            # Don't cache WooCommerce pages (if using WooCommerce)
+            # Don't cache WordPress admin, login, and specific pages
+            if ($request_uri ~* "(/wp-admin/|/wp-json/|/xmlrpc\.php|/wp-.*\.php|/feed/|index\.php|sitemap(_index)?\.xml)") {
+                set $skip_cache 1;
+            }
+            
+            # Don't cache WooCommerce pages
             if ($request_uri ~* "/(cart|checkout|my-account)/*$") {
                 set $skip_cache 1;
             }
@@ -144,51 +244,91 @@ http {
             fastcgi_cache_valid 60m;
             
             # Add cache status header
-            add_header X-FastCGI-Cache $upstream_cache_status;
+            add_header X-FastCGI-Cache $upstream_cache_status always;
             
             # Add cache headers for cached responses
             set $cache_control_header "no-cache, must-revalidate, max-age=0";
             if ($upstream_cache_status = "HIT") {
                 set $cache_control_header "public, max-age=3600";
             }
-            add_header Cache-Control $cache_control_header;
-            add_header X-Cache-Enabled "true";
+            add_header Cache-Control $cache_control_header always;
+            add_header X-Cache-Enabled "true" always;
             
             # Add Vary header for proper caching
-            add_header Vary "Accept-Encoding, Cookie";
+            add_header Vary "Accept-Encoding, Cookie" always;
             
             # FastCGI buffers
             fastcgi_buffer_size 128k;
             fastcgi_buffers 256 16k;
             fastcgi_busy_buffers_size 256k;
             fastcgi_temp_file_write_size 256k;
+            fastcgi_read_timeout 300;
         }
         
-        # Static files
-        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        # WordPress login with rate limiting
+        location = /wp-login.php {
+            limit_req zone=wplogin burst=3 nodelay;
+            
+            fastcgi_pass wordpress:9000;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            
+            # Pass real IP to PHP
+            fastcgi_param REMOTE_ADDR $remote_addr;
+            fastcgi_param HTTP_X_REAL_IP $remote_addr;
+            fastcgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
+            
+            fastcgi_param HTTP_AUTHORIZATION $http_authorization;
+            fastcgi_pass_header Authorization;
+        }
+        
+        # Static files with modern formats
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp|avif)$ {
             expires 365d;
             add_header Cache-Control "public, immutable";
             log_not_found off;
+            access_log off;
         }
         
         # Deny access to sensitive files
         location ~ /\. {
             deny all;
+            access_log off;
+            log_not_found off;
         }
         
-        location = /xmlrpc.php {
+        # Deny access to backup and source files
+        location ~* \.(bak|config|sql|fla|psd|ini|log|sh|inc|swp|dist)$ {
             deny all;
         }
         
+        # Deny access to PHP files in uploads directory
+        location ~* /(?:uploads|files|wp-content|wp-includes)/.*\.php$ {
+            deny all;
+        }
+        
+        # Deny access to wp-config.php
         location ~ /wp-config\.php {
             deny all;
+        }
+        
+        # Block XML-RPC (if not needed)
+        location = /xmlrpc.php {
+            deny all;
+            access_log off;
+            log_not_found off;
         }
         
         # Health check endpoint
         location = /health {
             access_log off;
-            return 200 "healthy\n";
+            return 200 "healthy\\n";
             add_header Content-Type text/plain;
+        }
+        
+        # Handle missing static files without logging
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+            log_not_found off;
         }
     }
 }
@@ -198,18 +338,76 @@ http {
 filePath = "Dockerfile.wordpress"
 content = """FROM wordpress:php8.4-fpm
 
-# Install sudo for permission handling
-RUN apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*
+# Install dependencies for building ImageMagick with AVIF support
+RUN apt-get update && apt-get install -y \\
+    build-essential \\
+    autoconf \\
+    automake \\
+    libtool \\
+    pkg-config \\
+    cmake \\
+    git \\
+    wget \\
+    sudo \\
+    # ImageMagick dependencies
+    libpng-dev \\
+    libjpeg-dev \\
+    libtiff-dev \\
+    libwebp-dev \\
+    libfreetype6-dev \\
+    libfontconfig1-dev \\
+    libheif-dev \\
+    libde265-dev \\
+    # AVIF dependencies
+    libaom-dev \\
+    libdav1d-dev \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Build and install libavif from source
+RUN cd /tmp && \\
+    git clone https://github.com/AOMediaCodec/libavif.git && \\
+    cd libavif && \\
+    mkdir build && cd build && \\
+    cmake -DCMAKE_BUILD_TYPE=Release -DAVIF_CODEC_AOM=ON -DAVIF_CODEC_DAV1D=ON .. && \\
+    make -j$(nproc) && \\
+    make install && \\
+    ldconfig && \\
+    cd / && rm -rf /tmp/libavif
+
+# Build and install ImageMagick with AVIF support
+RUN cd /tmp && \\
+    git clone https://github.com/ImageMagick/ImageMagick.git && \\
+    cd ImageMagick && \\
+    ./configure \\
+        --with-avif=yes \\
+        --with-webp=yes \\
+        --with-heic=yes \\
+        --with-jpeg=yes \\
+        --with-png=yes \\
+        --with-tiff=yes \\
+        --with-freetype=yes \\
+        --with-fontconfig=yes \\
+        --enable-shared \\
+        --disable-static \\
+        --with-modules && \\
+    make -j$(nproc) && \\
+    make install && \\
+    ldconfig && \\
+    cd / && rm -rf /tmp/ImageMagick
+
+# Install imagick PHP extension
+RUN pecl install imagick && \\
+    docker-php-ext-enable imagick
 
 # Create a custom entrypoint script
-RUN echo '#!/bin/bash\\n\\
-# Ensure nginx cache directory has proper permissions\\n\\
-if [ -d "/var/cache/nginx" ]; then\\n\\
-    # Make cache directory writable by www-data\\n\\
-    chmod -R 777 /var/cache/nginx\\n\\
-fi\\n\\
-# Call the original entrypoint\\n\\
-exec docker-entrypoint.sh "$@"' > /custom-entrypoint.sh && \\
+RUN echo '#!/bin/bash\\\\n\\\\
+# Ensure nginx cache directory has proper permissions\\\\n\\\\
+if [ -d "/var/cache/nginx" ]; then\\\\n\\\\
+    # Make cache directory writable by www-data\\\\n\\\\
+    chmod -R 777 /var/cache/nginx\\\\n\\\\
+fi\\\\n\\\\
+# Call the original entrypoint\\\\n\\\\
+exec docker-entrypoint.sh "$@"' > /custom-entrypoint.sh && \\\\
     chmod +x /custom-entrypoint.sh
 
 ENTRYPOINT ["/custom-entrypoint.sh"]
@@ -260,6 +458,16 @@ content = '''services:
         define('COMPRESS_SCRIPTS', true);
         define('COMPRESS_CSS', true);
         define('ENFORCE_GZIP', true);
+        
+        /* Real IP Detection for Cloudflare and Proxies */
+        if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            $_SERVER['REMOTE_ADDR'] = $_SERVER['HTTP_CF_CONNECTING_IP'];
+        } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $forwarded_ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            $_SERVER['REMOTE_ADDR'] = trim($forwarded_ips[0]);
+        } elseif (isset($_SERVER['HTTP_X_REAL_IP'])) {
+            $_SERVER['REMOTE_ADDR'] = $_SERVER['HTTP_X_REAL_IP'];
+        }
     depends_on:
       wp_db:
         condition: service_healthy
