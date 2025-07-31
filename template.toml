@@ -395,8 +395,9 @@ RUN cd /tmp && \\
     ldconfig && \\
     cd / && rm -rf /tmp/ImageMagick
 
-# Install imagick PHP extension
-RUN pecl install imagick && \\
+# Rebuild imagick PHP extension against our custom ImageMagick
+RUN pecl uninstall -n imagick && \\
+    pecl install imagick && \\
     docker-php-ext-enable imagick
 
 # Create a custom entrypoint script
