@@ -32,18 +32,18 @@ services:
         
         /* Handle loopback requests */
         if (!empty($$_SERVER['HTTP_HOST']) && $$_SERVER['HTTP_HOST'] === 'nginx') {
-            $$_SERVER['HTTP_HOST'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
-            $$_SERVER['SERVER_NAME'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
+            $$_SERVER['HTTP_HOST'] = '${WORDPRESS_SITE_HOST}';
+            $$_SERVER['SERVER_NAME'] = '${WORDPRESS_SITE_HOST}';
         }
         
         /* WordPress URLs */
         if (!defined('WP_SITEURL')) {
             if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
-                define('WP_SITEURL', 'https://${WORDPRESS_SITE_HOST:-betlandpro.com}');
-                define('WP_HOME', 'https://${WORDPRESS_SITE_HOST:-betlandpro.com}');
+                define('WP_SITEURL', 'https://${WORDPRESS_SITE_HOST}');
+                define('WP_HOME', 'https://${WORDPRESS_SITE_HOST}');
             } else {
-                define('WP_SITEURL', 'http://${WORDPRESS_SITE_HOST:-betlandpro.com}');
-                define('WP_HOME', 'http://${WORDPRESS_SITE_HOST:-betlandpro.com}');
+                define('WP_SITEURL', 'http://${WORDPRESS_SITE_HOST}');
+                define('WP_HOME', 'http://${WORDPRESS_SITE_HOST}');
             }
         }
         
