@@ -8,7 +8,8 @@ services:
       - ../files:/files
       - ./init-configs.sh:/init-configs.sh:ro
     command: sh /init-configs.sh
-    restart: "no"
+    networks:
+      - dokploy-network
 
   wordpress:
     image: wordpress:php8.4-fpm
@@ -50,10 +51,9 @@ services:
       - ../files/wordpress:/var/www/html
       - ../files/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     depends_on:
-      init-configs:
-        condition: service_completed_successfully
-      mysql: {}
-      redis: {}
+      - init-configs
+      - mysql
+      - redis
     networks:
       - dokploy-network
 
