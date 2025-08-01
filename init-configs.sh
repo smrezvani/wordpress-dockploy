@@ -1,33 +1,38 @@
 #!/bin/sh
-# This script initializes config files if they don't exist in the files directory
+# This script initializes config files and required directories for Dockerized WordPress + Nginx
 
-# Create directories if they don't exist
-mkdir -p /files/cache
-mkdir -p /files/wordpress
-mkdir -p /files/mysql
-mkdir -p /files/redis
+set -e
 
-# Copy nginx.conf if it doesn't exist
+echo "[init-configs] Starting initialization..."
+
+# Create required base directories
+echo "[init-configs] Creating base directories..."
+mkdir -p /files/{cache,wordpress,mysql,redis}
+
+# Ensure required Nginx temp subdirectories exist
+echo "[init-configs] Creating Nginx temp cache directories..."
+mkdir -p /files/cache/{client_temp,proxy_temp,fastcgi_temp}
+
+# Copy nginx.conf if not already present
 if [ ! -f /files/nginx.conf ]; then
-    echo "Copying nginx.conf to files directory..."
+    echo "[init-configs] Copying nginx.conf to /files..."
     cp /config/nginx.conf /files/nginx.conf
 fi
 
-# Copy 99-custom.ini if it doesn't exist
+# Copy PHP custom config if not already present
 if [ ! -f /files/99-custom.ini ]; then
-    echo "Copying 99-custom.ini to files directory..."
+    echo "[init-configs] Copying 99-custom.ini to /files..."
     cp /config/99-custom.ini /files/99-custom.ini
 fi
 
-# Set proper permissions for WordPress directory
+# Set permissions for WordPress directory (owned by www-data:33)
+echo "[init-configs] Setting permissions for WordPress directory..."
+chown -R 33:33 /files/wordpress || true
 chmod -R 755 /files/wordpress || true
-chown -R 33:33 /files/wordpress || true  # www-data user
 
-# Create required Nginx temp subdirectories
-mkdir -p /files/cache/client_temp /files/cache/proxy_temp /files/cache/fastcgi_temp
+# Set permissions for Nginx cache (allowing nginx:101 and group www-data:33 access)
+echo "[init-configs] Setting permissions for Nginx cache directories..."
+chown -R 101:33 /files/cache || true
+chmod -R 775 /files/cache || true
 
-# Set permissions for Nginx temp dirs (assuming 'nginx' UID is 101)
-chmod -R 775 /files/cache
-chown -R nginx:www-data /files/cache
-
-echo "Config files initialization complete!"
+echo "[init-configs] Initialization complete!"
