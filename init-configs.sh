@@ -19,6 +19,12 @@ if [ ! -f /files/nginx.conf ]; then
     cp /config/nginx.conf /files/nginx.conf
 fi
 
+# Copy nginx.conf.template if not already present
+if [ ! -f /files/nginx.conf.template ]; then
+    echo "[init-configs] Copying nginx.conf.template to /files..."
+    cp /config/nginx.conf.template /files/nginx.conf.template
+fi
+
 # Copy PHP custom config if not already present
 if [ ! -f /files/99-custom.ini ]; then
     echo "[init-configs] Copying 99-custom.ini to /files..."

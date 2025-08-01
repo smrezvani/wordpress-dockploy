@@ -94,6 +94,8 @@ services:
   nginx:
     image: nginx:stable
     restart: unless-stopped
+    environment:
+      NGINX_SERVER_NAME: ${WORDPRESS_SITE_HOST}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -102,7 +104,9 @@ services:
     volumes:
       - ../files/wordpress:/var/www/html:ro
       - ../files/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../files/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
       - ../files/cache:/var/cache/nginx
+    command: /bin/sh -c "envsubst '$$NGINX_SERVER_NAME' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost || exit 1"]
       interval: 30s
