@@ -12,5 +12,14 @@ RUN usermod -u 101 www-data && \
     sed -i 's/user = www-data/user = www-data/g' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/group = www-data/group = www-data/g' /usr/local/etc/php-fpm.d/www.conf
 
+# Create mu-plugins directory
+RUN mkdir -p /var/www/html/wp-content/mu-plugins
+
+# Copy domain validator plugin
+COPY mu-plugins/domain-validator.php /var/www/html/wp-content/mu-plugins/
+
+# Ensure correct ownership
+RUN chown -R www-data:www-data /var/www/html/wp-content/mu-plugins
+
 # Verify the change
 RUN id www-data
