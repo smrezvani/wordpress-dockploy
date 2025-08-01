@@ -21,14 +21,29 @@ services:
       WORDPRESS_DB_NAME: ${DB_NAME}
       WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
       WORDPRESS_CONFIG_EXTRA: |
+        /* Trust proxy headers */
+        if (isset($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            $$_SERVER['HTTPS'] = 'on';
+        }
+        if (isset($$_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            $$_SERVER['HTTP_HOST'] = $$_SERVER['HTTP_X_FORWARDED_HOST'];
+        }
+        
         /* Site URL Configuration */
         if (!empty($$_SERVER['HTTP_HOST'])) {
-            define('WP_HOME', 'https://' . $$_SERVER['HTTP_HOST']);
-            define('WP_SITEURL', 'https://' . $$_SERVER['HTTP_HOST']);
+            $$protocol = (!empty($$_SERVER['HTTPS']) && $$_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            define('WP_HOME', $$protocol . '://' . $$_SERVER['HTTP_HOST']);
+            define('WP_SITEURL', $$protocol . '://' . $$_SERVER['HTTP_HOST']);
         }
         
         /* Allow loopback connections */
         define('ALTERNATE_WP_CRON', false);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', false);
+        
+        /* Disable auto updates for stability */
+        define('AUTOMATIC_UPDATER_DISABLED', false);
+        define('WP_AUTO_UPDATE_CORE', false);
         
         /* Redis Configuration */
         define('WP_REDIS_HOST', 'redis');
