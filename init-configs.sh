@@ -27,7 +27,7 @@ chown -R 33:33 /files/wordpress || true  # www-data user
 mkdir -p /files/cache/client_temp /files/cache/proxy_temp /files/cache/fastcgi_temp
 
 # Set permissions for Nginx temp dirs (assuming 'nginx' UID is 101)
-chmod -R 700 /files/cache
-chown -R nginx:nginx /files/cache
+chmod -R 775 /files/cache
+chown -R nginx:www-data /files/cache
 
 echo "Config files initialization complete!"
