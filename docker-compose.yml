@@ -16,7 +16,6 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      - "nginx:172.17.0.1"
     environment:
       WORDPRESS_DB_HOST: mysql
       WORDPRESS_DB_USER: ${DB_USER}
