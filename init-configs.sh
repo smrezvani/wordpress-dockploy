@@ -23,8 +23,11 @@ fi
 chmod -R 755 /files/wordpress || true
 chown -R 33:33 /files/wordpress || true  # www-data user
 
-# Set permissions for cache directory (both nginx and www-data need access)
-chmod -R 775 /files/cache || true
-chown -R 33:33 /files/cache || true  # www-data user for PHP access
+# Create required Nginx temp subdirectories
+mkdir -p /files/cache/client_temp /files/cache/proxy_temp /files/cache/fastcgi_temp
+
+# Set permissions for Nginx temp dirs (assuming 'nginx' UID is 101)
+chmod -R 700 /files/cache
+chown -R nginx:nginx /files/cache
 
 echo "Config files initialization complete!"
