@@ -24,26 +24,17 @@ services:
       WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
       TMPDIR: /tmp
       WORDPRESS_CONFIG_EXTRA: |
-        /* Basic proxy header handling */
+        /* Proxy headers */
         if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
             $$_SERVER['HTTPS'] = 'on';
         }
         
-        /* Handle loopback requests */
-        if (!empty($$_SERVER['HTTP_HOST']) && $$_SERVER['HTTP_HOST'] === 'nginx') {
-            $$_SERVER['HTTP_HOST'] = '${WORDPRESS_SITE_HOST}';
-            $$_SERVER['SERVER_NAME'] = '${WORDPRESS_SITE_HOST}';
+        /* Trust proxy headers */
+        if (!empty($$_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $$_SERVER['REMOTE_ADDR'] = $$_SERVER['HTTP_X_FORWARDED_FOR'];
         }
-        
-        /* WordPress URLs */
-        if (!defined('WP_SITEURL')) {
-            if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
-                define('WP_SITEURL', 'https://${WORDPRESS_SITE_HOST}');
-                define('WP_HOME', 'https://${WORDPRESS_SITE_HOST}');
-            } else {
-                define('WP_SITEURL', 'http://${WORDPRESS_SITE_HOST}');
-                define('WP_HOME', 'http://${WORDPRESS_SITE_HOST}');
-            }
+        if (!empty($$_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            $$_SERVER['HTTP_HOST'] = $$_SERVER['HTTP_X_FORWARDED_HOST'];
         }
         
         /* Allow loopback connections */
