@@ -7,7 +7,7 @@ echo "[init-configs] Starting initialization..."
 
 # Create required base directories
 echo "[init-configs] Creating base directories..."
-mkdir -p /files/{cache,wordpress,mysql,redis}
+mkdir -p /files/cache /files/wordpress /files/mysql /files/redis
 
 # Ensure required Nginx temp subdirectories exist
 echo "[init-configs] Creating Nginx temp cache directories..."
