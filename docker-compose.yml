@@ -1,9 +1,21 @@
----
+version: '3.8'
 
 services:
+  init-configs:
+    image: busybox:latest
+    volumes:
+      - ./config:/config:ro
+      - ../files:/files
+      - ./init-configs.sh:/init-configs.sh:ro
+    command: sh /init-configs.sh
+    restart: "no"
+
   wordpress:
     image: wordpress:php8.4-fpm
     restart: unless-stopped
+    depends_on:
+      init-configs:
+        condition: service_completed_successfully
     environment:
       WORDPRESS_DB_HOST: mysql
       WORDPRESS_DB_USER: ${DB_USER}
@@ -49,12 +61,13 @@ services:
   nginx:
     image: nginx:stable
     restart: unless-stopped
+    depends_on:
+      - wordpress
+      - init-configs
     volumes:
       - ../files/wordpress:/var/www/html:ro
       - ../files/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../files/cache:/var/cache/nginx
-    depends_on:
-      - wordpress
     networks:
       - dokploy-network
 
