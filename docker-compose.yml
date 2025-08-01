@@ -26,19 +26,19 @@ services:
       TMPDIR: /tmp
       WORDPRESS_CONFIG_EXTRA: |
         /* Basic proxy header handling */
-        if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
-            $_SERVER['HTTPS'] = 'on';
+        if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            $$_SERVER['HTTPS'] = 'on';
         }
         
         /* Handle loopback requests */
-        if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'nginx') {
-            $_SERVER['HTTP_HOST'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
-            $_SERVER['SERVER_NAME'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
+        if (!empty($$_SERVER['HTTP_HOST']) && $$_SERVER['HTTP_HOST'] === 'nginx') {
+            $$_SERVER['HTTP_HOST'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
+            $$_SERVER['SERVER_NAME'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
         }
         
         /* WordPress URLs */
         if (!defined('WP_SITEURL')) {
-            if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
                 define('WP_SITEURL', 'https://${WORDPRESS_SITE_HOST:-betlandpro.com}');
                 define('WP_HOME', 'https://${WORDPRESS_SITE_HOST:-betlandpro.com}');
             } else {
