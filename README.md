@@ -1,120 +1,109 @@
-# Optimized WordPress Stack for Dokploy
+# WordPress Dokploy - Simplified Setup
 
-Enhanced WordPress deployment based on Dokploy's template with added Nginx reverse proxy, performance optimizations, and security hardening.
+A simplified, high-performance WordPress deployment stack for Dokploy using standard Docker images.
 
 ## Features
 
-- **WordPress** with PHP 8.4-FPM (high performance)
+- **Standard Docker Images**: No custom builds required
+- **PHP 8.4 FPM** with WordPress
+- **Nginx** as reverse proxy with FastCGI caching
 - **MySQL 8.4** database
-- **Redis 7** for object caching
-- **Nginx** with FastCGI caching
-- **Security headers** and access restrictions
-- **Performance optimizations** built-in
-- **Simple configuration** - minimal environment variables
-
-## Quick Start
-
-1. **Deploy in Dokploy**
-   - Create new Docker Compose project
-   - Use this repository
-
-2. **Set Environment Variables**
-   ```env
-   WORDPRESS_DEBUG=0
-   DB_NAME=wordpress
-   DB_PASSWORD=your_secure_password_here
-   ```
-
-3. **Deploy** - That's it!
+- **Redis** for object caching
+- **Dokploy-optimized** volume mounting
 
 ## Architecture
 
-The stack uses PHP-FPM (FastCGI Process Manager) for better performance:
-- **PHP-FPM** runs on port 9000 (internal)
-- **Nginx** handles static files directly  
-- **FastCGI** passes PHP requests to PHP-FPM
-- **Caching** at both Nginx and PHP levels
+```
+nginx:stable (80) -> wordpress:php8.4-fpm (9000)
+                  -> mysql:8.4 (3306)
+                  -> redis:latest (6379)
+```
 
-## Important Configuration
+## Configuration Files
 
-In Dokploy's Domain settings, make sure to:
-- Service: `nginx` (NOT `wordpress`)
-- Port: `80`
-- Container Port: `80`
+Following Dokploy best practices, configuration files are mounted from the `../files/` directory:
 
-## What's Improved
-
-### Over Default Dokploy Template
-
-1. **Nginx with PHP-FPM**
-   - FastCGI caching for dynamic content
-   - Static file caching (365 days)
-   - Gzip compression
-   - Security headers
-
-2. **WordPress Optimizations**
-   - Memory limits increased (512M/1024M)
-   - File compression enabled
-   - Smart revision limits
-   - Security hardening
-
-3. **Better Structure**
-   - Cleaner file organization
-   - Production-ready settings
+- `../files/nginx.conf` - Nginx configuration
+- `../files/uploads.ini` - PHP settings
+- `../files/wordpress/` - WordPress files
+- `../files/mysql/` - MySQL data
+- `../files/redis/` - Redis data
+- `../files/cache/` - Nginx cache
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_NAME` | Required | WordPress database name |
-| `DB_USER` | Required | WordPress database user |
-| `DB_PASSWORD` | Required | MySQL & WordPress password |
-| `REDIS_PASSWORD` | Required | Redis password |
-| `WORDPRESS_DEBUG` | `0` | Enable debug mode (1) or not (0) |
+Create a `.env` file with:
+
+```env
+# Database
+DB_NAME=wordpress
+DB_USER=wordpress
+DB_PASSWORD=your_secure_password
+DB_ROOT_PASSWORD=your_root_password
+
+# Redis
+REDIS_PASSWORD=your_redis_password
+
+# WordPress
+WORDPRESS_DEBUG=0
+```
+
+## Dokploy Deployment
+
+1. **Create Application**: In Dokploy, create a new "Docker Compose" application
+2. **Configure Source**: Use Git or upload files
+3. **Set Compose Path**: `./docker-compose.yml`
+4. **Add Environment Variables**: Add all required variables in Dokploy's environment section
+5. **Upload Config Files**: 
+   - In Dokploy's file manager for your app, upload:
+     - `config/nginx.conf` → Save as `nginx.conf` in the files directory
+     - `config/uploads.ini` → Save as `uploads.ini` in the files directory
+6. **Deploy**: Click deploy and wait for services to start
 
 ## File Structure
 
 ```
-.
-├── docker-compose.yml   # Main orchestration file
-├── nginx.conf          # Nginx configuration
-├── uploads.ini         # PHP upload settings
-├── template.toml       # Dokploy template configuration
-├── Dockerfile.nginx    # Custom nginx image
-├── .env.example        # Example environment file
-└── .gitignore          # Git ignore rules
+wordpress-dokploy/
+├── docker-compose.yml
+├── config/
+│   ├── nginx.conf
+│   └── uploads.ini
+├── .env.example
+└── README.md
 ```
 
-## Customization
+## Performance Features
 
-### PHP Settings
-Edit `uploads.ini` to adjust:
-- Upload size limits
-- Memory limits
-- Execution time
-- Input variables
+- **FastCGI Cache**: 60-minute cache for dynamic content
+- **Static File Cache**: 365-day cache for assets
+- **Gzip Compression**: Level 6 compression
+- **Redis Object Cache**: In-memory caching
+- **OPcache**: PHP bytecode caching
 
-### Nginx Settings
-Edit `nginx.conf` to adjust:
-- Caching rules
-- Security headers
-- Proxy settings
+## Security
 
-## Security Notes
+- Security headers (X-Frame-Options, X-Content-Type-Options, XSS-Protection)
+- Blocked access to sensitive files
+- SSL enforcement for admin areas
+- File editing disabled in WordPress admin
 
-- Change `DB_PASSWORD` to a strong password
-- WordPress file editing is disabled by default
-- SSL admin is enforced when using HTTPS
-- Sensitive files are blocked by Nginx
+## Volume Management
 
-## Redis Setup
+All data is persisted in Dokploy's `../files/` directory structure:
+- WordPress files, uploads, themes, and plugins
+- MySQL database
+- Redis cache data
+- Nginx cache
 
-After deployment, install the "Redis Object Cache" plugin:
-1. Go to WordPress Admin → Plugins → Add New
-2. Search for "Redis Object Cache" by Till Krüss
-3. Install and activate the plugin
-4. Go to Settings → Redis and click "Enable Object Cache"
+## Troubleshooting
 
-## Support
+1. **Cache Issues**: Clear Nginx cache by restarting the nginx service
+2. **Upload Limits**: Adjust values in `uploads.ini`
+3. **Redis Connection**: Ensure REDIS_PASSWORD matches in both WordPress and Redis service
+4. **Database Connection**: Verify DB_HOST is set to 'mysql' (service name)
 
-Based on Dokploy's official WordPress template with enhancements for production use.
+## Requirements
+
+- Dokploy platform
+- External `dokploy-network` created
+- Domain configured in Dokploy for the nginx service

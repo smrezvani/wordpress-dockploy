@@ -24,3 +24,6 @@ wp_app/
 *.tmp
 *.temp
 *~
+
+# Claude settings
+.claude/
