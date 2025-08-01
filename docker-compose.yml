@@ -14,6 +14,9 @@ services:
   wordpress:
     image: wordpress:php8.4-fpm
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "nginx:172.17.0.1"
     environment:
       WORDPRESS_DB_HOST: mysql
       WORDPRESS_DB_USER: ${DB_USER}
@@ -26,9 +29,27 @@ services:
             $$_SERVER['HTTPS'] = 'on';
         }
         
+        /* Handle loopback requests */
+        if (isset($$_SERVER['HTTP_HOST']) && $$_SERVER['HTTP_HOST'] === 'nginx') {
+            $$_SERVER['HTTP_HOST'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
+            $$_SERVER['SERVER_NAME'] = '${WORDPRESS_SITE_HOST:-betlandpro.com}';
+        }
+        
+        /* WordPress URLs */
+        if (!defined('WP_SITEURL')) {
+            if (isset($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+                define('WP_SITEURL', 'https://${WORDPRESS_SITE_HOST:-betlandpro.com}');
+                define('WP_HOME', 'https://${WORDPRESS_SITE_HOST:-betlandpro.com}');
+            } else {
+                define('WP_SITEURL', 'http://${WORDPRESS_SITE_HOST:-betlandpro.com}');
+                define('WP_HOME', 'http://${WORDPRESS_SITE_HOST:-betlandpro.com}');
+            }
+        }
+        
         /* Allow loopback connections */
-        define('ALTERNATE_WP_CRON', false);
-        define('WP_DEBUG_LOG', true);
+        define('ALTERNATE_WP_CRON', true);
+        define('DISABLE_WP_CRON', false);
+        define('WP_DEBUG_LOG', false);
         define('WP_DEBUG_DISPLAY', false);
         
         /* Disable auto updates for stability */
@@ -73,6 +94,8 @@ services:
   nginx:
     image: nginx:stable
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - wordpress
       - init-configs

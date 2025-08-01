@@ -46,6 +46,7 @@ REDIS_PASSWORD=your_redis_password
 
 # WordPress
 WORDPRESS_DEBUG=0
+WORDPRESS_SITE_HOST=yourdomain.com
 ```
 
 ## Dokploy Deployment
