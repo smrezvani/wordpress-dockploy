@@ -81,12 +81,11 @@ services:
     volumes:
       - ../files/mysql:/var/lib/mysql
     command: >
-      --default-authentication-plugin=mysql_native_password
+      --mysql-native-password=ON
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
       --max_connections=500
       --innodb_buffer_pool_size=256M
-      --innodb_log_file_size=64M
     networks:
       - dokploy-network
 
