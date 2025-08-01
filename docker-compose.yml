@@ -12,7 +12,7 @@ services:
       - dokploy-network
 
   wordpress:
-    image: wordpress:php8.4-fpm
+    build: ./wordpress
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -25,14 +25,14 @@ if [ ! -f /files/99-custom.ini ]; then
     cp /config/99-custom.ini /files/99-custom.ini
 fi
 
-# Set permissions for WordPress directory (owned by www-data:33)
+# Set permissions for WordPress directory (now using unified UID 101)
 echo "[init-configs] Setting permissions for WordPress directory..."
-chown -R 33:33 /files/wordpress || true
+chown -R 101:101 /files/wordpress || true
 chmod -R 755 /files/wordpress || true
 
-# Set permissions for Nginx cache (allowing nginx:101 and group www-data:33 access)
+# Set permissions for Nginx cache (both nginx and PHP-FPM use UID 101)
 echo "[init-configs] Setting permissions for Nginx cache directories..."
-chown -R 101:33 /files/cache || true
-chmod -R 775 /files/cache || true
+chown -R 101:101 /files/cache || true
+chmod -R 755 /files/cache || true
 
 echo "[init-configs] Initialization complete!"
