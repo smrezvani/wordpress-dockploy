@@ -74,6 +74,7 @@ services:
     volumes:
       - ../files/wordpress:/var/www/html
       - ../files/99-custom.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro
+      - ../files/cache:/var/cache/nginx
     depends_on:
       - init-configs
       - mysql

@@ -23,4 +23,8 @@ fi
 chmod -R 755 /files/wordpress || true
 chown -R 33:33 /files/wordpress || true  # www-data user
 
+# Set permissions for cache directory (both nginx and www-data need access)
+chmod -R 775 /files/cache || true
+chown -R 33:33 /files/cache || true  # www-data user for PHP access
+
 echo "Config files initialization complete!"
