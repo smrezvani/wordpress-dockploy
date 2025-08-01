@@ -10,10 +10,10 @@ if [ ! -f /files/nginx.conf ]; then
     cp /config/nginx.conf /files/nginx.conf
 fi
 
-# Copy uploads.ini if it doesn't exist
-if [ ! -f /files/uploads.ini ]; then
-    echo "Copying uploads.ini to files directory..."
-    cp /config/uploads.ini /files/uploads.ini
+# Copy 99-custom.ini if it doesn't exist
+if [ ! -f /files/99-custom.ini ]; then
+    echo "Copying 99-custom.ini to files directory..."
+    cp /config/99-custom.ini /files/99-custom.ini
 fi
 
 echo "Config files initialization complete!"
