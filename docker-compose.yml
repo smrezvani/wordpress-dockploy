@@ -1,0 +1,79 @@
+services:
+  wordpress:
+    image: wordpress:php8.4-apache
+    volumes:
+      - ../files/wp-app:/var/www/html
+      - ../files/99-custom.ini:/usr/local/etc/php/conf.d/99-custom.ini
+    environment:
+      WORDPRESS_DB_HOST: wp_db
+      WORDPRESS_DB_NAME: $DB_NAME
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: $DB_PASSWORD
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
+      WORDPRESS_CONFIG_EXTRA: |
+        /* Redis Configuration */
+        define('WP_REDIS_HOST', 'redis');
+        define('WP_REDIS_PORT', 6379);
+        define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
+        define('WP_REDIS_TIMEOUT', 1);
+        define('WP_REDIS_READ_TIMEOUT', 1);
+        define('WP_REDIS_DATABASE', 0);
+
+        /* Performance Settings */
+        define('WP_MEMORY_LIMIT', '512M');
+        define('WP_MAX_MEMORY_LIMIT', '1024M');
+        define('DISABLE_WP_CRON', true);
+        define('WP_POST_REVISIONS', 5);
+        define('AUTOSAVE_INTERVAL', 300);
+        define('EMPTY_TRASH_DAYS', 30);
+
+        /* Security Settings */
+        define('FORCE_SSL_ADMIN', true);
+        define('DISALLOW_FILE_EDIT', true);
+        define('DISALLOW_FILE_MODS', true);
+
+        /* Cache Settings */
+        define('WP_CACHE', true);
+        define('CONCATENATE_SCRIPTS', false);
+        define('COMPRESS_SCRIPTS', true);
+        define('COMPRESS_CSS', true);
+        define('ENFORCE_GZIP', true);
+    depends_on:
+      wp_db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  wp_db:
+    image: mysql:8.4
+    restart: unless-stopped
+    volumes:
+      - wp_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+    healthcheck:
+      test: ["CMD-SHELL", "exit | mysql -h localhost -P 3306 -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  wp_data: 
+  redis_data: 
